@@ -1,36 +1,26 @@
-// Fortune Cookie for an AI Agent — round 2 entrypoint.
-//
-// Reads the single fortune line from entry.txt next to this file and
-// copies it byte-for-byte to $MAKEFUN_OUTPUT_DIR/entry.txt, where the
-// sealed scorer checks it (UTF-8 text, 1 to 140 characters, not only
-// whitespace). Refuses anything else with exit code 1.
-//
-// Uses only node:fs, node:path and node:url — no dependencies, no DOM,
-// no network, nothing written back into the repository.
-
-import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
+// Fortune runner: it takes the single line kept next to this script and hands it on to the grading folder.
+// The line must stay within one hundred and forty characters, counted one code point at a time.
+// The finished file always lands in the folder named by MAKEFUN_OUTPUT_DIR, nowhere else.
+// Running it again on the same line always produces the same output file, with nothing extra added.
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const here = dirname(fileURLToPath(import.meta.url));
-const source = join(here, "entry.txt");
-
+const root = dirname(fileURLToPath(import.meta.url));
 const outputDir = process.env.MAKEFUN_OUTPUT_DIR;
-if (!outputDir) {
-  console.error("MAKEFUN_OUTPUT_DIR is not set");
-  process.exit(1);
-}
 
-const text = readFileSync(source, "utf8");
-if (text.trim().length === 0) {
-  console.error("entry.txt is empty or whitespace-only");
-  process.exit(1);
-}
-const length = [...text].length; // code points, so astral characters count once
-if (length > 140) {
-  console.error(`entry.txt is ${length} characters, over the 140 limit`);
-  process.exit(1);
+if (!outputDir) {
+  throw new Error("MAKEFUN_OUTPUT_DIR is not set");
 }
 
 mkdirSync(outputDir, { recursive: true });
-copyFileSync(source, join(outputDir, "entry.txt"));
+
+const entry = readFileSync(join(root, "entry.txt"), "utf8");
+
+const entryLength = [...entry].length;
+if (entryLength > 140) {
+  console.error(`entry is ${entryLength} characters, over the 140-character limit`);
+  process.exit(1);
+}
+
+writeFileSync(join(outputDir, "entry.txt"), entry);
